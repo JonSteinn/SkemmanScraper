@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import collections
 import csv
@@ -323,7 +324,7 @@ def _max_authors_and_advisors(projects: list[Project]) -> tuple[int, int]:
 
 def _to_csv(filename: str, projects: list[Project]) -> None:
     max_authors, max_advisors = _max_authors_and_advisors(projects)
-    with open(filename, "w", newline="", encoding="utf-8") as csvfile:
+    with open(filename, "w", newline="", encoding="utf-8-sig") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=_headers(max_authors, max_advisors))
         writer.writeheader()
         writer.writerows(
@@ -376,7 +377,7 @@ def _advisor_data_rows(
 
 
 def _to_per_teacher_csv(filename: str, projects: list[Project]) -> None:
-    with open(filename, "w", newline="", encoding="utf-8") as csvfile:
+    with open(filename, "w", newline="", encoding="utf-8-sig") as csvfile:
         headers = [
             "Advisor",
             "Advisor YOB",
@@ -414,8 +415,32 @@ async def _main() -> None:
     _to_per_teacher_csv("teacher.csv", without_none)
 
 
+def _run_locally() -> bool:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-l",
+        "--local",
+        dest="local",
+        action="store_true",
+        default=False,
+        help="Create csv from raw data.",
+    )
+    local: bool = vars(parser.parse_args()).get("local")  # type: ignore
+    return local
+
+
+def local_run() -> None:
+    """Recreate csv from json dump."""
+    projects = read_raw_data()
+    _to_csv("output.csv", projects)
+    _to_per_teacher_csv("teacher.csv", projects)
+
+
 def main() -> None:
     """Starting point."""
+    if _run_locally():
+        local_run()
+        return
     if is_windows():
         silence_event_loop_closed()
     try:
